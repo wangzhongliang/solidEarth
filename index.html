@@ -27,12 +27,13 @@ window.onload = function() {
 	
 	renderer = new THREE.WebGLRenderer({antialias: true});
 	renderer.setSize( window.innerWidth, window.innerHeight );
+	renderer.localClippingEnabled = true;
 	document.getElementById('viewport').appendChild(renderer.domElement);
 	
 	scene = new THREE.Scene();
 	
 	directlight = new THREE.DirectionalLight( 0xffffff );
-	directlight.position.set( 1, 1, 1 ).normalize();
+	directlight.position.set( 15, 15, 15 ).normalize();
 	scene.add( directlight );
 	hemilight = new THREE.HemisphereLight( 0xffffbb, 0x080820, 1 );
 	scene.add( hemilight );
@@ -43,34 +44,15 @@ window.onload = function() {
 		1,
 		1000
 	);
-	camera.position.set( 5, 5, 15 );
+	camera.position.set( 15, 15, 15 );
 	camera.lookAt( scene.position );
 	scene.add( camera );
-	// Example #1 - Cube (mesh) subtract Sphere (mesh)
-	(function() {
-		// var start_time = (new Date()).getTime();
-		// var cube_geometry = new THREE.CubeGeometry( 3, 3, 3 );
-		// var cube_mesh = new THREE.Mesh( cube_geometry );
-		// cube_mesh.position.x = -7;
-		// var cube_bsp = new ThreeBSP( cube_mesh );
-		// var sphere_geometry = new THREE.SphereGeometry( 1.8, 32, 32 );
-		// var sphere_mesh = new THREE.Mesh( sphere_geometry );
-		// sphere_mesh.position.x = -7;
-		// var sphere_bsp = new ThreeBSP( sphere_mesh );
-		
-		// var subtract_bsp = cube_bsp.subtract( sphere_bsp );
-		// var result = subtract_bsp.toMesh( new THREE.MeshLambertMaterial({
-			// shading: THREE.SmoothShading,
-			// map: new THREE.TextureLoader().load('js/ThreeCSG/texture.png')
-		// }));
-		// result.geometry.computeVertexNormals();
-		// scene.add( result );
-		// console.log( 'Example 1: ' + ((new Date()).getTime() - start_time) + 'ms' );
-		
+	
+	(function() {	
 		var group = new THREE.Object3D();
 		var prev_bsp;
 		var segment=20;
-		for ( var i = 1; i < 25; i ++ ) {
+		for ( var i = 1; i < 11; i ++ ) {
 			var sphere_geometry = new THREE.SphereGeometry( i / 2, segment, segment );
 			var material = new THREE.MeshStandardMaterial( {
 				color: new THREE.Color( Math.sin( i * 0.5 ) * 0.5 + 0.5, Math.cos( i * 1.5 ) * 0.5 + 0.5, Math.sin( i * 4.5 + 0 ) * 0.5 + 0.5 ),
@@ -78,8 +60,11 @@ window.onload = function() {
 				metalness: 0.0,
 				side: THREE.DoubleSide
 			} );
-			var sphere_mesh = new THREE.Mesh( sphere_geometry,material );
+			sphere_geometry.computeFaceNormals();
+			sphere_geometry.computeVertexNormals();
+			var sphere_mesh = new THREE.Mesh( sphere_geometry );
 			sphere_mesh.position.set(0,0,0);
+			
 			var sphere_bsp = new ThreeBSP(sphere_mesh);
 			var cube_geometry = new THREE.CubeGeometry(25,25,25);
 			
@@ -96,11 +81,28 @@ window.onload = function() {
 				subtract_bsp2 = subtract_bsp;
 				prev_bsp=sphere_bsp;
 			}
-			
 			var result = subtract_bsp2.toMesh( material);
 			// result.geometry.computeVertexNormals();
+			// result.geometry.computeFaceNormals();
 			group.add(result);
 		}
+		var clipPlanes = [
+			new THREE.Plane( new THREE.Vector3( -1,  0,  0 ), 0 ),
+			new THREE.Plane( new THREE.Vector3( 0, -1,  0 ), 0 ),
+			new THREE.Plane( new THREE.Vector3( 0,  0, -1 ), 0 )
+		];
+		var outgeometry = new THREE.SphereBufferGeometry( 10.1/2, segment, segment );
+		var outmaterial = new THREE.MeshStandardMaterial( {
+			map:new THREE.TextureLoader().load('./earthmap1k.jpg'),
+			bumpMap:new THREE.TextureLoader().load('./earthbump1k.jpg'),
+			specularMap:new THREE.TextureLoader().load('./earthspec1k.jpg'),
+			bumpScale:0.05,
+			specular:new THREE.Color('grey'),
+			clippingPlanes: clipPlanes,
+			clipIntersection: true
+		} );
+		var outmesh =new THREE.Mesh( outgeometry, outmaterial );
+		scene.add(outmesh)
 		scene.add( group );
 	})();
 	
